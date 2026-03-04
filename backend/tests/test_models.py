@@ -52,3 +52,25 @@ def test_create_agent_output(db):
     assert output.id is not None
     assert output.run_id == run.id
     assert output.agent_name == "pm"
+
+
+def test_agent_output_error_field(db):
+    run = PipelineRun(
+        repo_url="/tmp/test",
+        feature_name="test error field",
+        requirements="test",
+    )
+    db.add(run)
+    db.commit()
+
+    output = AgentOutput(
+        run_id=run.id,
+        agent_name="pm",
+        output_text="",
+        status="error",
+        error="Agent timed out after 300s",
+    )
+    db.add(output)
+    db.commit()
+    db.refresh(output)
+    assert output.error == "Agent timed out after 300s"
