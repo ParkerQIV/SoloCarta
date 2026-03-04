@@ -1,3 +1,5 @@
+import asyncio
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -5,6 +7,7 @@ from pydantic import BaseModel
 
 from app.database import get_db
 from app.models import PipelineRun
+from app.engine.runner import execute_pipeline
 
 router = APIRouter(prefix="/api/runs", tags=["runs"])
 
@@ -63,3 +66,18 @@ async def get_run(run_id: str, db: AsyncSession = Depends(get_db)):
     if not run:
         raise HTTPException(status_code=404, detail="Run not found")
     return run
+
+
+@router.post("/{run_id}/start", status_code=202)
+async def start_run(run_id: str, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(PipelineRun).where(PipelineRun.id == run_id)
+    )
+    run = result.scalar_one_or_none()
+    if not run:
+        raise HTTPException(status_code=404, detail="Run not found")
+    if run.status != "pending":
+        raise HTTPException(status_code=400, detail="Run already started")
+
+    asyncio.create_task(execute_pipeline(run_id))
+    return {"message": "Pipeline started", "run_id": run_id}
