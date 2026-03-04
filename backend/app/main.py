@@ -1,8 +1,22 @@
+import os
 from contextlib import asynccontextmanager
+from pathlib import Path
+
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
 from app.database import init_db
 from app.routers import runs, stream
+from app.routers.runs import stats_router
+
+# Load .env from project root (parent of backend/)
+_backend_dir = Path(__file__).resolve().parent.parent
+load_dotenv(_backend_dir.parent / ".env")
+
+# Allow claude_agent_sdk to spawn Claude CLI subprocesses
+os.environ.pop("CLAUDECODE", None)
+os.environ.pop("CLAUDE_CODE_ENTRYPOINT", None)
 
 
 @asynccontextmanager
@@ -24,6 +38,7 @@ app.add_middleware(
 
 app.include_router(runs.router)
 app.include_router(stream.router)
+app.include_router(stats_router)
 
 
 @app.get("/health")

@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import String, Text, DateTime, ForeignKey, Integer
+from sqlalchemy import String, Text, DateTime, ForeignKey, Integer, JSON, Float
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -34,6 +34,7 @@ class PipelineRun(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow, onupdate=_utcnow)
 
     outputs: Mapped[list["AgentOutput"]] = relationship(back_populates="run")
+    outcome: Mapped["OutcomeLog | None"] = relationship(back_populates="run")
 
 
 class AgentOutput(Base):
@@ -44,8 +45,25 @@ class AgentOutput(Base):
     agent_name: Mapped[str] = mapped_column(String, nullable=False)
     output_text: Mapped[str] = mapped_column(Text, nullable=False)
     status: Mapped[str] = mapped_column(String, default="pending")
+    error: Mapped[str | None] = mapped_column(Text, nullable=True)
     started_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
 
     run: Mapped["PipelineRun"] = relationship(back_populates="outputs")
+
+
+class OutcomeLog(Base):
+    __tablename__ = "outcome_logs"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
+    run_id: Mapped[str] = mapped_column(ForeignKey("pipeline_runs.id"), unique=True, nullable=False)
+    total_duration_seconds: Mapped[float | None] = mapped_column(Float, nullable=True)
+    agent_durations: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    gate_scores: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    failure_agent: Mapped[str | None] = mapped_column(String, nullable=True)
+    failure_category: Mapped[str | None] = mapped_column(String, nullable=True)
+    failure_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
+
+    run: Mapped["PipelineRun"] = relationship(back_populates="outcome")
