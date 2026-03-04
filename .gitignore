@@ -32,3 +32,4 @@ htmlcov/
 
 # Workspaces
 .workspaces/
+.worktrees/
