@@ -8,7 +8,7 @@ from pydantic import BaseModel, field_validator
 from datetime import datetime
 
 from app.database import get_db
-from app.models import PipelineRun, AgentOutput
+from app.models import PipelineRun, AgentOutput, OutcomeLog
 from app.engine.runner import execute_pipeline
 
 router = APIRouter(prefix="/api/runs", tags=["runs"])
@@ -143,3 +143,27 @@ async def list_outputs(
     query = query.order_by(AgentOutput.started_at)
     result = await db.execute(query)
     return result.scalars().all()
+
+
+class OutcomeResponse(BaseModel):
+    id: str
+    run_id: str
+    total_duration_seconds: float | None
+    agent_durations: dict | None
+    gate_scores: dict | None
+    failure_agent: str | None
+    failure_category: str | None
+    failure_summary: str | None
+
+    model_config = {"from_attributes": True}
+
+
+@router.get("/{run_id}/outcome", response_model=OutcomeResponse)
+async def get_outcome(run_id: str, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(OutcomeLog).where(OutcomeLog.run_id == run_id)
+    )
+    outcome = result.scalar_one_or_none()
+    if not outcome:
+        raise HTTPException(status_code=404, detail="Outcome not found")
+    return outcome

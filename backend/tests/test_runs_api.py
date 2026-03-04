@@ -151,3 +151,48 @@ async def test_cancel_run_not_running():
         response = await client.post(f"/api/runs/{run_id}/cancel")
     assert response.status_code == 400
     assert "not running" in response.json()["detail"].lower()
+
+
+@pytest.mark.asyncio
+async def test_get_outcome_not_found():
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        response = await client.get("/api/runs/nonexistent/outcome")
+    assert response.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_get_outcome_after_create():
+    from app.models import OutcomeLog
+    async with async_session() as db:
+        run = PipelineRun(
+            repo_url="/tmp/test",
+            feature_name="test outcome",
+            requirements="test",
+        )
+        db.add(run)
+        await db.commit()
+        await db.refresh(run)
+
+        outcome = OutcomeLog(
+            run_id=run.id,
+            total_duration_seconds=30.5,
+            agent_durations={"pm": 10.0, "dev": 15.0},
+            gate_scores={"criteria_met": 3},
+            failure_agent=None,
+            failure_category=None,
+            failure_summary=None,
+        )
+        db.add(outcome)
+        await db.commit()
+
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        response = await client.get(f"/api/runs/{run.id}/outcome")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total_duration_seconds"] == 30.5
+    assert data["agent_durations"]["pm"] == 10.0
+    assert data["failure_agent"] is None
