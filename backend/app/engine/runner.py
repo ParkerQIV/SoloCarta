@@ -55,6 +55,31 @@ async def _save_agent_output(
         return record.id
 
 
+async def _save_outcome(
+    run_id: str,
+    total_duration_seconds: float | None,
+    agent_durations: dict | None,
+    gate_scores: dict | None,
+    failure_agent: str | None = None,
+    failure_category: str | None = None,
+    failure_summary: str | None = None,
+) -> None:
+    """Save an OutcomeLog record for a completed pipeline run."""
+    from app.models import OutcomeLog
+    async with async_session() as db:
+        record = OutcomeLog(
+            run_id=run_id,
+            total_duration_seconds=total_duration_seconds,
+            agent_durations=agent_durations,
+            gate_scores=gate_scores,
+            failure_agent=failure_agent,
+            failure_category=failure_category,
+            failure_summary=failure_summary,
+        )
+        db.add(record)
+        await db.commit()
+
+
 async def execute_pipeline(run_id: str) -> None:
     """Execute the full pipeline for a run. Runs as a background task."""
     async with async_session() as db:
@@ -68,6 +93,7 @@ async def execute_pipeline(run_id: str) -> None:
         run.status = "running"
         await db.commit()
         publish_event(run_id, "status", {"status": "running"})
+        pipeline_start = datetime.now(timezone.utc)
 
         cancel_event = asyncio.Event()
         _cancel_events[run_id] = cancel_event
@@ -119,6 +145,29 @@ async def execute_pipeline(run_id: str) -> None:
                 run.pr_url = final_state["pr_url"]
 
             await db.commit()
+
+            # Save outcome log
+            duration = (datetime.now(timezone.utc) - pipeline_start).total_seconds()
+            agent_durations = {}
+            async with async_session() as outcome_db:
+                agent_result = await outcome_db.execute(
+                    select(AgentOutput).where(AgentOutput.run_id == run_id)
+                )
+                for ao in agent_result.scalars():
+                    if ao.started_at and ao.completed_at:
+                        agent_durations[ao.agent_name] = (ao.completed_at - ao.started_at).total_seconds()
+
+            gate = final_state.get("gate_result") or {}
+            await _save_outcome(
+                run_id=run_id,
+                total_duration_seconds=duration,
+                agent_durations=agent_durations,
+                gate_scores={k: v for k, v in gate.items() if k != "decision" and k != "reasons"},
+                failure_agent=None,
+                failure_category="gate_fail" if final_state["status"] == "failed" else None,
+                failure_summary=None if final_state["status"] != "failed" else "Gatekeeper rejected",
+            )
+
             publish_event(run_id, "pipeline_complete", {
                 "status": final_state["status"],
                 "gate_result": final_state.get("gate_result"),
@@ -143,6 +192,24 @@ async def execute_pipeline(run_id: str) -> None:
             run.error = traceback.format_exc()
             run.sandbox_path = sandbox_path or None
             await db.commit()
+
+            # Save outcome log for errors
+            duration = (datetime.now(timezone.utc) - pipeline_start).total_seconds()
+            fail_agent = None
+            fail_category = "crash"
+            if isinstance(e, AgentError):
+                fail_agent = e.agent_name
+                fail_category = "timeout" if isinstance(e.original_error, (TimeoutError, asyncio.TimeoutError)) else "crash"
+            await _save_outcome(
+                run_id=run_id,
+                total_duration_seconds=duration,
+                agent_durations={},
+                gate_scores=None,
+                failure_agent=fail_agent,
+                failure_category=fail_category,
+                failure_summary=str(e),
+            )
+
             publish_event(run_id, "pipeline_complete", {
                 "status": "error",
                 "error": str(e),
