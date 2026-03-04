@@ -74,3 +74,31 @@ def test_agent_output_error_field(db):
     db.commit()
     db.refresh(output)
     assert output.error == "Agent timed out after 300s"
+
+
+def test_create_outcome_log(db):
+    run = PipelineRun(
+        repo_url="/tmp/test",
+        feature_name="test outcome",
+        requirements="test",
+    )
+    db.add(run)
+    db.commit()
+
+    from app.models import OutcomeLog
+    outcome = OutcomeLog(
+        run_id=run.id,
+        total_duration_seconds=45.2,
+        agent_durations={"pm": 12.3, "architect": 8.1},
+        gate_scores={"criteria_met": 3, "tests_pass": 2},
+        failure_agent=None,
+        failure_category=None,
+        failure_summary=None,
+    )
+    db.add(outcome)
+    db.commit()
+    db.refresh(outcome)
+    assert outcome.id is not None
+    assert outcome.total_duration_seconds == 45.2
+    assert outcome.agent_durations["pm"] == 12.3
+    assert outcome.failure_agent is None
