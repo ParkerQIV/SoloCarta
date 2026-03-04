@@ -34,6 +34,7 @@ class PipelineRun(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow, onupdate=_utcnow)
 
     outputs: Mapped[list["AgentOutput"]] = relationship(back_populates="run")
+    outcome: Mapped["OutcomeLog | None"] = relationship(back_populates="run")
 
 
 class AgentOutput(Base):
@@ -65,4 +66,4 @@ class OutcomeLog(Base):
     failure_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
 
-    run: Mapped["PipelineRun"] = relationship()
+    run: Mapped["PipelineRun"] = relationship(back_populates="outcome")

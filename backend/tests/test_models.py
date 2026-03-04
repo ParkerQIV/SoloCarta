@@ -1,7 +1,7 @@
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
-from app.models import Base, PipelineRun, AgentOutput
+from app.models import Base, PipelineRun, AgentOutput, OutcomeLog
 from datetime import datetime, timezone
 
 
@@ -85,7 +85,6 @@ def test_create_outcome_log(db):
     db.add(run)
     db.commit()
 
-    from app.models import OutcomeLog
     outcome = OutcomeLog(
         run_id=run.id,
         total_duration_seconds=45.2,
