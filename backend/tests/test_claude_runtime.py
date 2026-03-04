@@ -9,6 +9,10 @@ def test_build_agent_options_pm():
     )
     assert options is not None
     assert "pm" in str(options.agents)
+    assert options.cwd == "/tmp/sandbox"
+    assert options.permission_mode == "bypassPermissions"
+    assert options.max_turns == 50
+    assert options.max_budget_usd == 1.0
 
 
 def test_build_agent_options_dev():
@@ -21,3 +25,5 @@ def test_build_agent_options_dev():
     dev_agent = options.agents["dev"]
     assert "Bash" in dev_agent.tools
     assert "Write" in dev_agent.tools
+    # Should run in sandbox directory
+    assert options.cwd == "/tmp/sandbox"

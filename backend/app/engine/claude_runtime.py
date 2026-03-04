@@ -53,6 +53,10 @@ def build_agent_options(
                 model="sonnet",
             )
         },
+        cwd=sandbox_path,
+        permission_mode="bypassPermissions",
+        max_turns=50,
+        max_budget_usd=1.0,
     )
 
 
