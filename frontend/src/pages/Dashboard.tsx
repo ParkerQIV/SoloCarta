@@ -14,11 +14,16 @@ interface Run {
 export default function Dashboard() {
   const [runs, setRuns] = useState<Run[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     fetch('/api/runs')
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error(`API error: ${r.status}`)
+        return r.json()
+      })
       .then(setRuns)
+      .catch((e) => setError(e.message))
       .finally(() => setLoading(false))
   }, [])
 
@@ -33,6 +38,12 @@ export default function Dashboard() {
   }
 
   if (loading) return <p className="text-gray-500">Loading...</p>
+
+  if (error) return (
+    <div className="rounded-lg border border-red-800 bg-red-950 p-4 text-sm text-red-300">
+      Failed to load runs: {error}
+    </div>
+  )
 
   return (
     <div>

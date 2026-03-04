@@ -46,7 +46,8 @@ def sandbox_setup_node(state: PipelineState) -> dict:
 def pm_node(state: PipelineState) -> dict:
     """Run PM agent to generate spec."""
     import anyio
-    from app.engine.claude_runtime import run_agent, AgentRole
+    from app.engine.resilience import run_agent_with_retry
+    from app.engine.claude_runtime import AgentRole
 
     context = f"""Feature: {state['feature_name']}
 
@@ -56,7 +57,7 @@ Requirements:
 Generate a specification for this feature."""
 
     spec = anyio.from_thread.run(
-        run_agent, AgentRole.PM, state["sandbox_path"], context
+        run_agent_with_retry, AgentRole.PM, state["sandbox_path"], context
     )
     return {"spec": spec, "current_step": "architect"}
 
@@ -64,7 +65,8 @@ Generate a specification for this feature."""
 def architect_node(state: PipelineState) -> dict:
     """Run Architect agent."""
     import anyio
-    from app.engine.claude_runtime import run_agent, AgentRole
+    from app.engine.resilience import run_agent_with_retry
+    from app.engine.claude_runtime import AgentRole
 
     context = f"""Specification:
 {state['spec']}
@@ -72,7 +74,7 @@ def architect_node(state: PipelineState) -> dict:
 Generate architecture notes for this feature."""
 
     architecture = anyio.from_thread.run(
-        run_agent, AgentRole.ARCHITECT, state["sandbox_path"], context
+        run_agent_with_retry, AgentRole.ARCHITECT, state["sandbox_path"], context
     )
     return {"architecture": architecture, "current_step": "planner"}
 
@@ -80,7 +82,8 @@ Generate architecture notes for this feature."""
 def planner_node(state: PipelineState) -> dict:
     """Run Planner agent."""
     import anyio
-    from app.engine.claude_runtime import run_agent, AgentRole
+    from app.engine.resilience import run_agent_with_retry
+    from app.engine.claude_runtime import AgentRole
 
     context = f"""Specification:
 {state['spec']}
@@ -91,7 +94,7 @@ Architecture:
 Create an ordered task plan."""
 
     plan = anyio.from_thread.run(
-        run_agent, AgentRole.PLANNER, state["sandbox_path"], context
+        run_agent_with_retry, AgentRole.PLANNER, state["sandbox_path"], context
     )
     return {"plan": plan, "current_step": "dev"}
 
@@ -99,7 +102,8 @@ Create an ordered task plan."""
 def dev_node(state: PipelineState) -> dict:
     """Run Dev agent."""
     import anyio
-    from app.engine.claude_runtime import run_agent, AgentRole
+    from app.engine.resilience import run_agent_with_retry
+    from app.engine.claude_runtime import AgentRole
 
     context = f"""Specification:
 {state['spec']}
@@ -113,7 +117,7 @@ Plan:
 Implement the feature according to this plan."""
 
     summary = anyio.from_thread.run(
-        run_agent, AgentRole.DEV, state["sandbox_path"], context
+        run_agent_with_retry, AgentRole.DEV, state["sandbox_path"], context
     )
     return {"implementation_summary": summary, "current_step": "qa"}
 
@@ -121,7 +125,8 @@ Implement the feature according to this plan."""
 def qa_node(state: PipelineState) -> dict:
     """Run QA agent."""
     import anyio
-    from app.engine.claude_runtime import run_agent, AgentRole
+    from app.engine.resilience import run_agent_with_retry
+    from app.engine.claude_runtime import AgentRole
 
     context = f"""Specification:
 {state['spec']}
@@ -129,7 +134,7 @@ def qa_node(state: PipelineState) -> dict:
 Run lint, tests, and type checking. Report all results."""
 
     results_text = anyio.from_thread.run(
-        run_agent, AgentRole.QA, state["sandbox_path"], context
+        run_agent_with_retry, AgentRole.QA, state["sandbox_path"], context
     )
     return {
         "qa_results": {"raw_output": results_text},
@@ -140,7 +145,8 @@ Run lint, tests, and type checking. Report all results."""
 def reviewer_node(state: PipelineState) -> dict:
     """Run Reviewer agent."""
     import anyio
-    from app.engine.claude_runtime import run_agent, AgentRole
+    from app.engine.resilience import run_agent_with_retry
+    from app.engine.claude_runtime import AgentRole
 
     context = f"""Specification:
 {state['spec']}
@@ -154,7 +160,7 @@ QA Results:
 Review the implementation."""
 
     report = anyio.from_thread.run(
-        run_agent, AgentRole.REVIEWER, state["sandbox_path"], context
+        run_agent_with_retry, AgentRole.REVIEWER, state["sandbox_path"], context
     )
     return {"review_report": report, "current_step": "gatekeeper"}
 
@@ -163,7 +169,8 @@ def gatekeeper_node(state: PipelineState) -> dict:
     """Run Gatekeeper agent."""
     import anyio
     import json
-    from app.engine.claude_runtime import run_agent, AgentRole
+    from app.engine.resilience import run_agent_with_retry
+    from app.engine.claude_runtime import AgentRole
 
     context = f"""Specification:
 {state['spec']}
@@ -180,7 +187,7 @@ Reviewer Report:
 Score and decide PASS/FAIL."""
 
     result_text = anyio.from_thread.run(
-        run_agent, AgentRole.GATEKEEPER, state["sandbox_path"], context
+        run_agent_with_retry, AgentRole.GATEKEEPER, state["sandbox_path"], context
     )
     try:
         gate_result = json.loads(result_text)

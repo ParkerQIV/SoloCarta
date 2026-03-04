@@ -18,12 +18,17 @@ interface Run {
 export default function RunDetail() {
   const { id } = useParams<{ id: string }>()
   const [run, setRun] = useState<Run | null>(null)
+  const [fetchError, setFetchError] = useState<string | null>(null)
   const { events } = useSSE(`/api/stream/${id}`)
 
   useEffect(() => {
     fetch(`/api/runs/${id}`)
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error(`Run not found (${r.status})`)
+        return r.json()
+      })
       .then(setRun)
+      .catch((e) => setFetchError(e.message))
   }, [id])
 
   // Refresh run data when SSE events arrive
@@ -34,6 +39,12 @@ export default function RunDetail() {
         .then(setRun)
     }
   }, [events.length, id])
+
+  if (fetchError) return (
+    <div className="rounded-lg border border-red-800 bg-red-950 p-4 text-sm text-red-300">
+      {fetchError}
+    </div>
+  )
 
   if (!run) return <p className="text-gray-500">Loading...</p>
 
