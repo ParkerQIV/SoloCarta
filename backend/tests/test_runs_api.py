@@ -196,3 +196,17 @@ async def test_get_outcome_after_create():
     assert data["total_duration_seconds"] == 30.5
     assert data["agent_durations"]["pm"] == 10.0
     assert data["failure_agent"] is None
+
+
+@pytest.mark.asyncio
+async def test_get_stats():
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        response = await client.get("/api/stats")
+    assert response.status_code == 200
+    data = response.json()
+    assert "total_runs" in data
+    assert "pass_rate" in data
+    assert "avg_gate_score" in data
+    assert "most_common_failure_agent" in data

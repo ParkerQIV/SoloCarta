@@ -2,7 +2,7 @@ import asyncio
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
 from pydantic import BaseModel, field_validator
 
 from datetime import datetime
@@ -167,3 +167,49 @@ async def get_outcome(run_id: str, db: AsyncSession = Depends(get_db)):
     if not outcome:
         raise HTTPException(status_code=404, detail="Outcome not found")
     return outcome
+
+
+stats_router = APIRouter(prefix="/api", tags=["stats"])
+
+
+class StatsResponse(BaseModel):
+    total_runs: int
+    passed: int
+    failed: int
+    errored: int
+    pass_rate: float
+    avg_gate_score: float | None
+    most_common_failure_agent: str | None
+
+
+@stats_router.get("/stats", response_model=StatsResponse)
+async def get_stats(db: AsyncSession = Depends(get_db)):
+    all_runs = await db.execute(select(PipelineRun))
+    runs = all_runs.scalars().all()
+
+    total = len(runs)
+    passed = sum(1 for r in runs if r.status == "passed")
+    failed = sum(1 for r in runs if r.status == "failed")
+    errored = sum(1 for r in runs if r.status == "error")
+    pass_rate = (passed / total * 100) if total > 0 else 0.0
+
+    scores = [r.gate_score for r in runs if r.gate_score is not None]
+    avg_score = sum(scores) / len(scores) if scores else None
+
+    # Most common failure agent from OutcomeLog
+    outcome_result = await db.execute(
+        select(OutcomeLog.failure_agent)
+        .where(OutcomeLog.failure_agent.isnot(None))
+    )
+    failure_agents = [r[0] for r in outcome_result.all()]
+    most_common = max(set(failure_agents), key=failure_agents.count) if failure_agents else None
+
+    return StatsResponse(
+        total_runs=total,
+        passed=passed,
+        failed=failed,
+        errored=errored,
+        pass_rate=round(pass_rate, 1),
+        avg_gate_score=round(avg_score, 1) if avg_score is not None else None,
+        most_common_failure_agent=most_common,
+    )

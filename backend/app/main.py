@@ -3,6 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.database import init_db
 from app.routers import runs, stream
+from app.routers.runs import stats_router
 
 
 @asynccontextmanager
@@ -24,6 +25,7 @@ app.add_middleware(
 
 app.include_router(runs.router)
 app.include_router(stream.router)
+app.include_router(stats_router)
 
 
 @app.get("/health")
