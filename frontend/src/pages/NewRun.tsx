@@ -10,28 +10,49 @@ export default function NewRun() {
     requirements: '',
   })
   const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setSubmitting(true)
+    setError(null)
 
-    const res = await fetch('/api/runs', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(form),
-    })
-    const run = await res.json()
+    try {
+      const res = await fetch('/api/runs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      })
 
-    // Start the pipeline
-    await fetch(`/api/runs/${run.id}/start`, { method: 'POST' })
+      if (!res.ok) {
+        const body = await res.json().catch(() => null)
+        const detail = body?.detail
+        const msg = Array.isArray(detail)
+          ? detail.map((d: { msg: string }) => d.msg).join(', ')
+          : detail || `Error ${res.status}`
+        setError(msg)
+        setSubmitting(false)
+        return
+      }
 
-    navigate(`/run/${run.id}`)
+      const run = await res.json()
+      await fetch(`/api/runs/${run.id}/start`, { method: 'POST' })
+      navigate(`/run/${run.id}`)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Network error')
+      setSubmitting(false)
+    }
   }
 
   return (
     <div className="mx-auto max-w-2xl">
       <h1 className="mb-6 text-2xl font-bold">New Pipeline Run</h1>
       <form onSubmit={handleSubmit} className="space-y-4">
+        {error && (
+          <div className="rounded-lg border border-red-800 bg-red-950 p-3 text-sm text-red-300">
+            {error}
+          </div>
+        )}
         <div>
           <label className="mb-1 block text-sm text-gray-400">Repository URL</label>
           <input
