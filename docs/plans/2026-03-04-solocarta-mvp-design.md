@@ -195,9 +195,19 @@ Deferred until 10-20 pipeline runs generate sufficient failure data.
 
 ---
 
-## 8. Out of Scope (Phase 1)
+## 8. Roadmap
+
+| Phase | Scope |
+|-------|-------|
+| Phase 1 | Core pipeline (7 agents) + web dashboard + sandbox + GitHub PR |
+| Phase 1.5 | Telegram bot for remote access (kick off runs, check status, approve PRs) |
+| Phase 2 | Self-improvement loop (Postmortem, Prompt Engineer, Evaluator agents) |
+| Phase 3 | Parallel agent execution |
+
+## 9. Out of Scope (Phase 1)
 
 - Improvement loop (Phase 2)
+- Telegram bot (Phase 1.5)
 - Parallel agent execution (Phase 3)
 - Auth / multi-user
 - Deployment automation
