@@ -1,5 +1,6 @@
 import asyncio
 import traceback
+from datetime import datetime, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
@@ -26,6 +27,32 @@ def is_cancelled(run_id: str) -> bool:
     """Check if a run has been cancelled."""
     event = _cancel_events.get(run_id)
     return event.is_set() if event else False
+
+
+async def _save_agent_output(
+    run_id: str,
+    agent_name: str,
+    output_text: str,
+    started_at: datetime | None,
+    completed_at: datetime | None,
+    status: str = "completed",
+    error: str | None = None,
+) -> str:
+    """Save an AgentOutput record and return its id."""
+    async with async_session() as db:
+        record = AgentOutput(
+            run_id=run_id,
+            agent_name=agent_name,
+            output_text=output_text,
+            status=status,
+            error=error,
+            started_at=started_at,
+            completed_at=completed_at,
+        )
+        db.add(record)
+        await db.commit()
+        await db.refresh(record)
+        return record.id
 
 
 async def execute_pipeline(run_id: str) -> None:
@@ -98,6 +125,20 @@ async def execute_pipeline(run_id: str) -> None:
             })
 
         except Exception as e:
+            # If it's an AgentError, save the per-agent error record
+            from app.engine.resilience import AgentError
+            if isinstance(e, AgentError):
+                now = datetime.now(timezone.utc)
+                await _save_agent_output(
+                    run_id=run_id,
+                    agent_name=e.agent_name,
+                    output_text="",
+                    started_at=now,
+                    completed_at=now,
+                    status="error",
+                    error=str(e.original_error),
+                )
+
             run.status = "error"
             run.error = traceback.format_exc()
             run.sandbox_path = sandbox_path or None
