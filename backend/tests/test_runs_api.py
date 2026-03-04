@@ -1,6 +1,9 @@
 import pytest
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy import select as sa_select
 from app.main import app
+from app.database import async_session
+from app.models import PipelineRun
 
 
 @pytest.mark.asyncio
@@ -41,3 +44,34 @@ async def test_get_run_not_found():
     ) as client:
         response = await client.get("/api/runs/nonexistent")
     assert response.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_sandbox_path_saved_after_pipeline():
+    """Verify sandbox_path is persisted to PipelineRun after update."""
+    async with async_session() as db:
+        run = PipelineRun(
+            repo_url="/tmp/fake-repo",
+            feature_name="test sandbox save",
+            requirements="Test",
+            sandbox_path=None,
+        )
+        db.add(run)
+        await db.commit()
+        await db.refresh(run)
+        run_id = run.id
+
+    async with async_session() as db:
+        result = await db.execute(
+            sa_select(PipelineRun).where(PipelineRun.id == run_id)
+        )
+        r = result.scalar_one()
+        r.sandbox_path = "/tmp/test-sandbox"
+        await db.commit()
+
+    async with async_session() as db:
+        result = await db.execute(
+            sa_select(PipelineRun).where(PipelineRun.id == run_id)
+        )
+        r = result.scalar_one()
+        assert r.sandbox_path == "/tmp/test-sandbox"

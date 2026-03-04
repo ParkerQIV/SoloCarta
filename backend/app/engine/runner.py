@@ -23,6 +23,7 @@ async def execute_pipeline(run_id: str) -> None:
         await db.commit()
         publish_event(run_id, "status", {"status": "running"})
 
+        sandbox_path = ""
         try:
             graph = build_pipeline_graph()
             initial_state: PipelineState = {
@@ -48,9 +49,12 @@ async def execute_pipeline(run_id: str) -> None:
             # Run the graph
             final_state = await asyncio.to_thread(graph.invoke, initial_state)
 
+            sandbox_path = final_state.get("sandbox_path", "")
+
             # Update DB with results
             run.status = final_state["status"]
             run.current_step = final_state["current_step"]
+            run.sandbox_path = sandbox_path or None
             if final_state.get("gate_result"):
                 run.gate_score = final_state["gate_result"].get("total_score")
                 run.gate_decision = final_state["gate_result"].get("decision")
@@ -66,6 +70,7 @@ async def execute_pipeline(run_id: str) -> None:
         except Exception as e:
             run.status = "error"
             run.error = traceback.format_exc()
+            run.sandbox_path = sandbox_path or None
             await db.commit()
             publish_event(run_id, "pipeline_complete", {
                 "status": "error",
