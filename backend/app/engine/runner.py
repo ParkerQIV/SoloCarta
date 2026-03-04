@@ -9,6 +9,25 @@ from app.engine.orchestrator import build_pipeline_graph, PipelineState
 from app.routers.stream import publish_event
 
 
+# Cancellation registry: run_id -> Event
+_cancel_events: dict[str, asyncio.Event] = {}
+
+
+def request_cancellation(run_id: str) -> bool:
+    """Request cancellation of a running pipeline. Returns True if event was set."""
+    event = _cancel_events.get(run_id)
+    if event:
+        event.set()
+        return True
+    return False
+
+
+def is_cancelled(run_id: str) -> bool:
+    """Check if a run has been cancelled."""
+    event = _cancel_events.get(run_id)
+    return event.is_set() if event else False
+
+
 async def execute_pipeline(run_id: str) -> None:
     """Execute the full pipeline for a run. Runs as a background task."""
     async with async_session() as db:
@@ -22,6 +41,9 @@ async def execute_pipeline(run_id: str) -> None:
         run.status = "running"
         await db.commit()
         publish_event(run_id, "status", {"status": "running"})
+
+        cancel_event = asyncio.Event()
+        _cancel_events[run_id] = cancel_event
 
         sandbox_path = ""
         try:
@@ -51,6 +73,14 @@ async def execute_pipeline(run_id: str) -> None:
 
             sandbox_path = final_state.get("sandbox_path", "")
 
+            # Handle cancellation
+            if final_state.get("status") == "cancelled" or cancel_event.is_set():
+                run.status = "cancelled"
+                run.sandbox_path = sandbox_path or None
+                await db.commit()
+                publish_event(run_id, "pipeline_complete", {"status": "cancelled"})
+                return
+
             # Update DB with results
             run.status = final_state["status"]
             run.current_step = final_state["current_step"]
@@ -76,3 +106,5 @@ async def execute_pipeline(run_id: str) -> None:
                 "status": "error",
                 "error": str(e),
             })
+        finally:
+            _cancel_events.pop(run_id, None)

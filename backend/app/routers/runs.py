@@ -99,6 +99,25 @@ async def start_run(run_id: str, db: AsyncSession = Depends(get_db)):
     return {"message": "Pipeline started", "run_id": run_id}
 
 
+@router.post("/{run_id}/cancel")
+async def cancel_run(run_id: str, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(PipelineRun).where(PipelineRun.id == run_id)
+    )
+    run = result.scalar_one_or_none()
+    if not run:
+        raise HTTPException(status_code=404, detail="Run not found")
+    if run.status != "running":
+        raise HTTPException(status_code=400, detail="Run is not running")
+
+    from app.engine.runner import request_cancellation
+    cancelled = request_cancellation(run_id)
+    if cancelled:
+        run.status = "cancelled"
+        await db.commit()
+    return {"message": "Cancellation requested", "run_id": run_id}
+
+
 class AgentOutputResponse(BaseModel):
     id: str
     run_id: str

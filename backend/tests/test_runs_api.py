@@ -123,3 +123,31 @@ async def test_create_run_valid_local_path():
             },
         )
     assert response.status_code == 201
+
+
+@pytest.mark.asyncio
+async def test_cancel_run_not_found():
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        response = await client.post("/api/runs/nonexistent/cancel")
+    assert response.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_cancel_run_not_running():
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        create_resp = await client.post(
+            "/api/runs",
+            json={
+                "repo_url": "/tmp/test-repo",
+                "feature_name": "test cancel",
+                "requirements": "Test",
+            },
+        )
+        run_id = create_resp.json()["id"]
+        response = await client.post(f"/api/runs/{run_id}/cancel")
+    assert response.status_code == 400
+    assert "not running" in response.json()["detail"].lower()
