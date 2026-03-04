@@ -42,6 +42,7 @@ async def execute_pipeline(run_id: str) -> None:
                 "current_step": "pending",
                 "status": "pending",
                 "error": None,
+                "pr_url": None,
             }
 
             # Run the graph
@@ -53,6 +54,8 @@ async def execute_pipeline(run_id: str) -> None:
             if final_state.get("gate_result"):
                 run.gate_score = final_state["gate_result"].get("total_score")
                 run.gate_decision = final_state["gate_result"].get("decision")
+            if final_state.get("pr_url"):
+                run.pr_url = final_state["pr_url"]
 
             await db.commit()
             publish_event(run_id, "pipeline_complete", {

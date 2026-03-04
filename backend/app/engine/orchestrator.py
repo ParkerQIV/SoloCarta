@@ -25,6 +25,7 @@ class PipelineState(TypedDict):
     current_step: str
     status: str
     error: str | None
+    pr_url: str | None
 
 
 def sandbox_setup_node(state: PipelineState) -> dict:
@@ -202,8 +203,29 @@ def route_gate_result(state: PipelineState) -> Literal["create_pr", "fail"]:
 
 def create_pr_node(state: PipelineState) -> dict:
     """Create PR on GitHub."""
-    # TODO: implement GitHub integration in Task 8
-    return {"status": "passed"}
+    from app.engine.github import push_branch, create_pull_request, build_pr_body
+
+    branch_name = f"ai/{state['feature_name'].replace(' ', '-')}"
+    body = build_pr_body(
+        feature_name=state["feature_name"],
+        spec=state.get("spec") or "",
+        architecture=state.get("architecture") or "",
+        gate_result=state.get("gate_result") or {},
+    )
+
+    try:
+        push_branch(state["sandbox_path"], branch_name)
+        pr_url = create_pull_request(
+            sandbox_path=state["sandbox_path"],
+            branch_name=branch_name,
+            base_branch=state["base_branch"],
+            title=f"feat: {state['feature_name']}",
+            body=body,
+        )
+        return {"status": "passed", "pr_url": pr_url}
+    except Exception:
+        # PR creation is best-effort — don't fail the pipeline over it
+        return {"status": "passed"}
 
 
 def fail_node(state: PipelineState) -> dict:

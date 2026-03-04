@@ -24,10 +24,13 @@ async def stream_run(run_id: str):
     async def event_generator():
         try:
             while True:
-                event = await queue.get()
-                yield event
-                if event.get("event") == "pipeline_complete":
-                    break
+                try:
+                    event = await asyncio.wait_for(queue.get(), timeout=30.0)
+                    yield event
+                    if event.get("event") == "pipeline_complete":
+                        break
+                except asyncio.TimeoutError:
+                    yield {"comment": "keepalive"}
         finally:
             _event_queues[run_id].remove(queue)
             if not _event_queues[run_id]:
