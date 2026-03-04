@@ -3,7 +3,7 @@ import asyncio
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 from app.database import get_db
 from app.models import PipelineRun
@@ -17,6 +17,20 @@ class CreateRunRequest(BaseModel):
     base_branch: str = "main"
     feature_name: str
     requirements: str
+
+    @field_validator("repo_url")
+    @classmethod
+    def validate_repo_url(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError("repo_url must not be empty")
+        if ".." in v:
+            raise ValueError("repo_url must not contain '..'")
+        if v.startswith("https://"):
+            return v
+        if v.startswith("/"):
+            return v
+        raise ValueError("repo_url must be an absolute path or https:// URL")
 
 
 class RunResponse(BaseModel):

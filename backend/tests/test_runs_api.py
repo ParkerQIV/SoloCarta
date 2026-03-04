@@ -75,3 +75,51 @@ async def test_sandbox_path_saved_after_pipeline():
         )
         r = result.scalar_one()
         assert r.sandbox_path == "/tmp/test-sandbox"
+
+
+@pytest.mark.asyncio
+async def test_create_run_invalid_repo_url_traversal():
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        response = await client.post(
+            "/api/runs",
+            json={
+                "repo_url": "../../../etc/passwd",
+                "feature_name": "evil",
+                "requirements": "hack",
+            },
+        )
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_create_run_invalid_repo_url_empty():
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        response = await client.post(
+            "/api/runs",
+            json={
+                "repo_url": "",
+                "feature_name": "test",
+                "requirements": "test",
+            },
+        )
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_create_run_valid_local_path():
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        response = await client.post(
+            "/api/runs",
+            json={
+                "repo_url": "/Users/test/my-repo",
+                "feature_name": "valid local",
+                "requirements": "test",
+            },
+        )
+    assert response.status_code == 201
