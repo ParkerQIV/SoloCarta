@@ -3,7 +3,12 @@ import subprocess
 from pathlib import Path
 
 
-EXCLUDE_DIRS = {".venv", ".workspaces", "__pycache__", "node_modules", ".tox"}
+EXCLUDE_DIRS = {".venv", ".workspaces", ".worktrees", "__pycache__", "node_modules", ".tox"}
+
+
+def _ignore_excluded(directory: str, contents: list[str]) -> set[str]:
+    """Return set of directory names to exclude during copytree."""
+    return {name for name in contents if name in EXCLUDE_DIRS}
 
 
 def create_sandbox(
@@ -27,7 +32,7 @@ def create_sandbox(
             shutil.copytree(item, dest / ".git")
             continue
         if item.is_dir():
-            shutil.copytree(item, dest / item.name)
+            shutil.copytree(item, dest / item.name, ignore=_ignore_excluded)
         else:
             shutil.copy2(item, dest / item.name)
 

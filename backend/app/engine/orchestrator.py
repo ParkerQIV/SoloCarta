@@ -45,7 +45,7 @@ def sandbox_setup_node(state: PipelineState) -> dict:
 
 def pm_node(state: PipelineState) -> dict:
     """Run PM agent to generate spec."""
-    import anyio
+    import asyncio
     from app.engine.resilience import run_agent_with_retry
     from app.engine.claude_runtime import AgentRole
 
@@ -56,15 +56,15 @@ Requirements:
 
 Generate a specification for this feature."""
 
-    spec = anyio.from_thread.run(
-        run_agent_with_retry, AgentRole.PM, state["sandbox_path"], context
+    spec = asyncio.run(
+        run_agent_with_retry(AgentRole.PM, state["sandbox_path"], context)
     )
     return {"spec": spec, "current_step": "architect"}
 
 
 def architect_node(state: PipelineState) -> dict:
     """Run Architect agent."""
-    import anyio
+    import asyncio
     from app.engine.resilience import run_agent_with_retry
     from app.engine.claude_runtime import AgentRole
 
@@ -73,15 +73,15 @@ def architect_node(state: PipelineState) -> dict:
 
 Generate architecture notes for this feature."""
 
-    architecture = anyio.from_thread.run(
-        run_agent_with_retry, AgentRole.ARCHITECT, state["sandbox_path"], context
+    architecture = asyncio.run(
+        run_agent_with_retry(AgentRole.ARCHITECT, state["sandbox_path"], context)
     )
     return {"architecture": architecture, "current_step": "planner"}
 
 
 def planner_node(state: PipelineState) -> dict:
     """Run Planner agent."""
-    import anyio
+    import asyncio
     from app.engine.resilience import run_agent_with_retry
     from app.engine.claude_runtime import AgentRole
 
@@ -93,15 +93,15 @@ Architecture:
 
 Create an ordered task plan."""
 
-    plan = anyio.from_thread.run(
-        run_agent_with_retry, AgentRole.PLANNER, state["sandbox_path"], context
+    plan = asyncio.run(
+        run_agent_with_retry(AgentRole.PLANNER, state["sandbox_path"], context)
     )
     return {"plan": plan, "current_step": "dev"}
 
 
 def dev_node(state: PipelineState) -> dict:
     """Run Dev agent."""
-    import anyio
+    import asyncio
     from app.engine.resilience import run_agent_with_retry
     from app.engine.claude_runtime import AgentRole
 
@@ -116,15 +116,15 @@ Plan:
 
 Implement the feature according to this plan."""
 
-    summary = anyio.from_thread.run(
-        run_agent_with_retry, AgentRole.DEV, state["sandbox_path"], context
+    summary = asyncio.run(
+        run_agent_with_retry(AgentRole.DEV, state["sandbox_path"], context)
     )
     return {"implementation_summary": summary, "current_step": "qa"}
 
 
 def qa_node(state: PipelineState) -> dict:
     """Run QA agent."""
-    import anyio
+    import asyncio
     from app.engine.resilience import run_agent_with_retry
     from app.engine.claude_runtime import AgentRole
 
@@ -133,8 +133,8 @@ def qa_node(state: PipelineState) -> dict:
 
 Run lint, tests, and type checking. Report all results."""
 
-    results_text = anyio.from_thread.run(
-        run_agent_with_retry, AgentRole.QA, state["sandbox_path"], context
+    results_text = asyncio.run(
+        run_agent_with_retry(AgentRole.QA, state["sandbox_path"], context)
     )
     return {
         "qa_results": {"raw_output": results_text},
@@ -144,7 +144,7 @@ Run lint, tests, and type checking. Report all results."""
 
 def reviewer_node(state: PipelineState) -> dict:
     """Run Reviewer agent."""
-    import anyio
+    import asyncio
     from app.engine.resilience import run_agent_with_retry
     from app.engine.claude_runtime import AgentRole
 
@@ -159,15 +159,15 @@ QA Results:
 
 Review the implementation."""
 
-    report = anyio.from_thread.run(
-        run_agent_with_retry, AgentRole.REVIEWER, state["sandbox_path"], context
+    report = asyncio.run(
+        run_agent_with_retry(AgentRole.REVIEWER, state["sandbox_path"], context)
     )
     return {"review_report": report, "current_step": "gatekeeper"}
 
 
 def gatekeeper_node(state: PipelineState) -> dict:
     """Run Gatekeeper agent."""
-    import anyio
+    import asyncio
     import json
     from app.engine.resilience import run_agent_with_retry
     from app.engine.claude_runtime import AgentRole
@@ -186,8 +186,8 @@ Reviewer Report:
 
 Score and decide PASS/FAIL."""
 
-    result_text = anyio.from_thread.run(
-        run_agent_with_retry, AgentRole.GATEKEEPER, state["sandbox_path"], context
+    result_text = asyncio.run(
+        run_agent_with_retry(AgentRole.GATEKEEPER, state["sandbox_path"], context)
     )
     try:
         gate_result = json.loads(result_text)
