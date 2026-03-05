@@ -1,7 +1,23 @@
 """LangGraph orchestrator — sequential pipeline with conditional gate."""
 
+import json
+import re
 from typing import TypedDict, Literal
 from langgraph.graph import StateGraph, START, END
+
+
+def parse_gate_json(text: str) -> dict:
+    """Parse gatekeeper output, handling markdown fences around JSON."""
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", text, re.DOTALL)
+        if match:
+            try:
+                return json.loads(match.group(1))
+            except json.JSONDecodeError:
+                pass
+        return {"decision": "FAIL", "reasons": ["Failed to parse gatekeeper output"]}
 
 
 class PipelineState(TypedDict):
@@ -162,7 +178,6 @@ Review the implementation."""
 def gatekeeper_node(state: PipelineState) -> dict:
     """Run Gatekeeper agent."""
     import anyio
-    import json
     from app.engine.claude_runtime import run_agent, AgentRole
 
     context = f"""Specification:
@@ -182,13 +197,7 @@ Score and decide PASS/FAIL."""
     result_text = anyio.from_thread.run(
         run_agent, AgentRole.GATEKEEPER, state["sandbox_path"], context
     )
-    try:
-        gate_result = json.loads(result_text)
-    except json.JSONDecodeError:
-        gate_result = {
-            "decision": "FAIL",
-            "reasons": ["Failed to parse gatekeeper output"],
-        }
+    gate_result = parse_gate_json(result_text)
 
     return {"gate_result": gate_result, "current_step": "done"}
 
