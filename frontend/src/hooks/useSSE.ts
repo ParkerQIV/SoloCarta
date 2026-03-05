@@ -30,6 +30,16 @@ export function useSSE(url: string) {
       setEvents((prev) => [...prev, { event: 'status', data }])
     })
 
+    source.addEventListener('agent_start', (e) => {
+      const data: unknown = JSON.parse((e as MessageEvent).data as string)
+      setEvents((prev) => [...prev, { event: 'agent_start', data }])
+    })
+
+    source.addEventListener('agent_complete', (e) => {
+      const data: unknown = JSON.parse((e as MessageEvent).data as string)
+      setEvents((prev) => [...prev, { event: 'agent_complete', data }])
+    })
+
     source.addEventListener('pipeline_complete', (e) => {
       const data: unknown = JSON.parse((e as MessageEvent).data as string)
       setEvents((prev) => [...prev, { event: 'pipeline_complete', data }])

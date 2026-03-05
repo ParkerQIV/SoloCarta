@@ -1,7 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useParams } from 'react-router-dom'
 import { useSSE } from '../hooks/useSSE'
 import PipelineTimeline from '../components/PipelineTimeline'
+import AgentCard from '../components/AgentCard'
+import DiffViewer from '../components/DiffViewer'
+import LogViewer from '../components/LogViewer'
 
 interface Run {
   id: string
@@ -15,27 +18,96 @@ interface Run {
   pr_url: string | null
 }
 
+interface AgentOutputData {
+  id: string
+  run_id: string
+  agent_name: string
+  output_text: string
+  status: string
+  started_at: string | null
+  completed_at: string | null
+}
+
+const AGENT_NAMES = ['pm', 'architect', 'planner', 'dev', 'qa', 'reviewer', 'gatekeeper'] as const
+const TERMINAL_STATUSES = ['completed', 'failed', 'cancelled']
+
 export default function RunDetail() {
   const { id } = useParams<{ id: string }>()
   const [run, setRun] = useState<Run | null>(null)
+  const [outputs, setOutputs] = useState<AgentOutputData[]>([])
+  const [activeAgent, setActiveAgent] = useState<string | null>(null)
+  const [diff, setDiff] = useState<string | null>(null)
+  const [diffLoading, setDiffLoading] = useState(false)
+  const [selectedAgent, setSelectedAgent] = useState<string | null>(null)
   const { events } = useSSE(`/api/stream/${id}`)
+
+  const fetchOutputs = useCallback(() => {
+    fetch(`/api/runs/${id}/outputs`)
+      .then((r) => r.json())
+      .then(setOutputs)
+  }, [id])
+
+  const fetchDiff = useCallback(() => {
+    setDiffLoading(true)
+    fetch(`/api/runs/${id}/diff`)
+      .then((r) => {
+        if (!r.ok) return null
+        return r.json()
+      })
+      .then((data) => {
+        if (data?.has_changes) setDiff(data.diff)
+      })
+      .finally(() => setDiffLoading(false))
+  }, [id])
 
   useEffect(() => {
     fetch(`/api/runs/${id}`)
       .then((r) => r.json())
-      .then(setRun)
-  }, [id])
+      .then((data: Run) => {
+        setRun(data)
+        if (TERMINAL_STATUSES.includes(data.status)) {
+          fetchDiff()
+        }
+      })
+    fetchOutputs()
+  }, [id, fetchOutputs, fetchDiff])
 
-  // Refresh run data when SSE events arrive
+  // Handle SSE events
   useEffect(() => {
-    if (events.length > 0) {
+    if (events.length === 0) return
+    const latest = events[events.length - 1]
+
+    if (latest.event === 'status' || latest.event === 'pipeline_complete') {
       fetch(`/api/runs/${id}`)
         .then((r) => r.json())
         .then(setRun)
     }
-  }, [events.length, id])
+
+    if (latest.event === 'agent_start') {
+      const data = latest.data as { agent: string }
+      setActiveAgent(data.agent)
+    }
+
+    if (latest.event === 'agent_complete') {
+      const data = latest.data as { agent: string }
+      setActiveAgent(null)
+      fetchOutputs()
+      if (data.agent === 'dev') {
+        fetchDiff()
+      }
+    }
+
+    if (latest.event === 'pipeline_complete') {
+      setActiveAgent(null)
+      fetchOutputs()
+      fetchDiff()
+    }
+  }, [events.length, id, fetchOutputs, fetchDiff])
 
   if (!run) return <p className="text-gray-500">Loading...</p>
+
+  const outputsByAgent = new Map(outputs.map((o) => [o.agent_name, o]))
+  const selectedOutput = selectedAgent ? outputsByAgent.get(selectedAgent) : null
 
   return (
     <div>
@@ -43,6 +115,37 @@ export default function RunDetail() {
       <p className="mb-6 text-sm text-gray-500">{run.requirements}</p>
 
       <PipelineTimeline currentStep={run.current_step} status={run.status} />
+
+      <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {AGENT_NAMES.map((agent) => {
+          const agentOutput = outputsByAgent.get(agent)
+          let status: 'pending' | 'running' | 'completed' = 'pending'
+          if (agentOutput) {
+            status = 'completed'
+          } else if (activeAgent === agent) {
+            status = 'running'
+          }
+          return (
+            <AgentCard
+              key={agent}
+              name={agent}
+              output={agentOutput?.output_text ?? null}
+              status={status}
+              onClick={() => setSelectedAgent(agent)}
+            />
+          )
+        })}
+      </div>
+
+      {diffLoading && (
+        <p className="mt-6 text-sm text-gray-500">Loading diff...</p>
+      )}
+
+      {diff && !diffLoading && (
+        <div className="mt-6">
+          <DiffViewer diff={diff} />
+        </div>
+      )}
 
       <div className="mt-6 rounded-lg border border-gray-800 p-4">
         <div className="grid grid-cols-2 gap-4 text-sm">
@@ -84,6 +187,14 @@ export default function RunDetail() {
           )}
         </div>
       </div>
+
+      {selectedAgent && selectedOutput && (
+        <LogViewer
+          agentName={selectedAgent}
+          output={selectedOutput.output_text}
+          onClose={() => setSelectedAgent(null)}
+        />
+      )}
     </div>
   )
 }

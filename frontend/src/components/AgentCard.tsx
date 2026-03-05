@@ -2,11 +2,18 @@ interface Props {
   name: string
   output: string | null
   status: 'pending' | 'running' | 'completed'
+  onClick?: () => void
 }
 
-export default function AgentCard({ name, output, status }: Props) {
+export default function AgentCard({ name, output, status, onClick }: Props) {
+  const isClickable = onClick && output
   return (
-    <div className="rounded-lg border border-gray-800 p-4">
+    <div
+      className={`rounded-lg border border-gray-800 p-4 ${
+        isClickable ? 'cursor-pointer hover:border-gray-600' : ''
+      }`}
+      onClick={isClickable ? onClick : undefined}
+    >
       <div className="mb-2 flex items-center justify-between">
         <h3 className="font-semibold capitalize">{name} Agent</h3>
         <span className={`text-xs ${

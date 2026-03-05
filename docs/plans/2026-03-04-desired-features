@@ -1,0 +1,486 @@
+# 1. Repository Understanding Features
+
+### Full Repository Indexing
+Ability for agents to scan and understand entire repositories.
+
+### File Structure Awareness
+Agents understand folder hierarchy and project organization.
+
+### Dependency Discovery
+Agents identify libraries, modules, and internal dependencies.
+
+### Code Relationship Mapping
+Detect relationships between functions, classes, modules, and files.
+
+### Semantic Code Search
+Locate relevant files and functions based on intent.
+
+### Cross-File Reasoning
+Understand how multiple files interact.
+
+### Large Codebase Navigation
+Traverse thousands of files efficiently.
+
+### Import Graph Analysis
+Understand how modules import and depend on each other.
+
+### Configuration Discovery
+Automatically detect configuration files and build systems.
+
+### Documentation Parsing
+Extract knowledge from README and documentation files.
+
+---
+
+# 2. Code Editing and Generation
+
+### Multi-File Code Editing
+Modify multiple files within a single task.
+
+### Structured Patch Generation
+Generate patch-style code updates compatible with Git.
+
+### Refactoring Support
+Rename functions, restructure modules, and reorganize code.
+
+### Code Generation from Specification
+Implement software based on feature descriptions.
+
+### Boilerplate Generation
+Create scaffolding and standard project structures.
+
+### Module Creation
+Generate new modules or components.
+
+### Incremental Code Updates
+Apply partial updates without rewriting entire files.
+
+### Code Comment Generation
+Automatically document functions and modules.
+
+### Code Style Enforcement
+Ensure consistent formatting and conventions.
+
+---
+
+# 3. Terminal and Environment Control
+
+### Shell Command Execution
+Agents execute terminal commands.
+
+### Dependency Installation
+Install packages automatically.
+
+### Build System Execution
+Run build pipelines such as:
+
+- npm
+- pip
+- make
+- gradle
+
+### Test Execution
+Run automated test suites.
+
+### Environment Inspection
+Check installed packages and runtime environment.
+
+### Runtime Debugging
+Investigate runtime errors through command-line output.
+
+### CLI Tool Integration
+Interact with developer tools through shell commands.
+
+---
+
+# 4. Automated Debugging Capabilities
+
+### Error Trace Analysis
+Interpret stack traces to identify root causes.
+
+### Iterative Debugging Loops
+Automatically attempt fixes until tests pass.
+
+### Failure Reproduction
+Recreate errors locally before fixing.
+
+### Patch Testing
+Validate fixes against failing tests.
+
+### Log Inspection
+Analyze runtime logs for debugging.
+
+### Bug Localization
+Identify the likely location of defects in code.
+
+---
+
+# 5. Task Planning and Decomposition
+
+### Task Breakdown
+Divide complex problems into smaller steps.
+
+### Step Tracking
+Track progress through tasks.
+
+### Multi-Stage Planning
+Generate structured development plans.
+
+### Goal-Oriented Reasoning
+Work toward defined outcomes rather than isolated actions.
+
+### Dependency-Aware Planning
+Recognize task dependencies.
+
+### Dynamic Plan Adjustment
+Modify plans as new information appears.
+
+---
+
+# 6. Multi-Agent Collaboration
+
+### Role-Based Agents
+Agents operate with defined roles.
+
+Examples:
+
+- Product Manager
+- Architect
+- Engineer
+- QA
+- Reviewer
+
+### Task Delegation
+Manager agents assign work to other agents.
+
+### Agent Communication
+Agents exchange outputs and information.
+
+### Agent Collaboration Pipelines
+Agents work sequentially to complete workflows.
+
+### Debate-Based Decision Making
+Multiple agents propose solutions and compare them.
+
+### Specialist Agents
+Agents specialized in narrow domains.
+
+### Hierarchical Agent Structures
+Managers coordinate worker agents.
+
+---
+
+# 7. Workflow Orchestration
+
+### Stateful Workflow Execution
+Agent pipelines maintain state across steps.
+
+### Graph-Based Workflow Modeling
+Workflows represented as nodes and edges.
+
+### Conditional Routing
+Pipeline paths change based on results.
+
+Example:
+
+
+tests_pass → deploy
+tests_fail → debug
+
+
+### Retry Logic
+Automatically repeat failed steps.
+
+### Parallel Agent Execution
+Run multiple agents simultaneously.
+
+### Long-Running Task Management
+Support workflows lasting hours or days.
+
+### Pipeline Monitoring
+Track pipeline progress and status.
+
+---
+
+# 8. Tool Integration
+
+### API Tool Use
+Agents interact with external APIs.
+
+### Database Tool Access
+Agents query databases.
+
+### File System Tools
+Agents read/write files.
+
+### Web Search Tools
+Agents gather information online.
+
+### Code Execution Tools
+Run dynamic code during reasoning.
+
+### External System Integration
+Interact with CI/CD systems.
+
+---
+
+# 9. Git and Version Control Integration
+
+### Repository Cloning
+Agents clone repositories automatically.
+
+### Branch Creation
+Create feature branches.
+
+### Commit Generation
+Generate structured commit messages.
+
+### Patch Application
+Apply diffs to repositories.
+
+### Pull Request Creation
+Create PRs for review.
+
+### Code Diff Analysis
+Review changes between commits.
+
+### Conflict Detection
+Identify merge conflicts.
+
+---
+
+# 10. Quality Assurance
+
+### Test Generation
+Create unit and integration tests.
+
+### Test Coverage Analysis
+Evaluate how much code is tested.
+
+### Lint Execution
+Check coding style issues.
+
+### Static Analysis
+Detect potential bugs.
+
+### Security Checks
+Identify unsafe code patterns.
+
+### Architecture Compliance
+Ensure code matches system design.
+
+---
+
+# 11. Evaluation and Scoring
+
+### Rubric-Based Code Evaluation
+Score outputs based on quality criteria.
+
+### Automated Quality Gates
+Block progress when standards are not met.
+
+### Performance Benchmarking
+Evaluate system performance.
+
+### Regression Testing
+Prevent previously solved bugs from reappearing.
+
+### Scoring Systems
+Generate numerical evaluation scores.
+
+---
+
+# 12. Observability and Monitoring
+
+### Agent Trace Logging
+Track all agent reasoning steps.
+
+### Tool Usage Tracking
+Record which tools agents used.
+
+### Prompt Version Tracking
+Maintain history of prompt updates.
+
+### Performance Metrics
+Measure latency, cost, and success rates.
+
+### Run History Storage
+Store historical execution logs.
+
+### Debug Replay
+Replay past agent sessions.
+
+---
+
+# 13. Memory Systems
+
+### Shared Knowledge Base
+Agents access shared documents.
+
+### Historical Context Memory
+Store previous project knowledge.
+
+### Failure Memory
+Record past mistakes.
+
+### Architecture Memory
+Remember past design decisions.
+
+### Long-Term Agent Memory
+Agents recall previous interactions.
+
+---
+
+# 14. Sandbox Execution
+
+### Isolated Development Environments
+Run code safely in temporary workspaces.
+
+### Workspace Cloning
+Copy repositories into temporary environments.
+
+### Environment Reset
+Discard environments after runs.
+
+### Containerized Execution
+Use Docker or containers.
+
+### Restricted File Access
+Prevent agents from modifying host systems.
+
+---
+
+# 15. Self-Improvement Capabilities
+
+### Failure Logging
+Automatically record system failures.
+
+### Root Cause Analysis
+Analyze why failures occurred.
+
+### Prompt Patch Generation
+Suggest improvements to prompts.
+
+### Rule Updates
+Modify operational guidelines.
+
+### Evaluation of Improvements
+Test whether updates improve performance.
+
+### Continuous Learning Loops
+Repeat improvement cycle after failures.
+
+---
+
+# 16. Security and Safety
+
+### Secret Redaction
+Remove secrets from prompts.
+
+### Access Restrictions
+Limit agent permissions.
+
+### Command Safelisting
+Allow only approved commands.
+
+### Environment Isolation
+Separate agent execution from host environment.
+
+### Audit Trails
+Maintain traceable logs.
+
+---
+
+# 17. Human Interaction
+
+### Human-in-the-Loop Approval
+Require manual approval for key actions.
+
+### Interactive Agent Sessions
+Humans can intervene mid-task.
+
+### Feedback Incorporation
+Agents adjust based on human feedback.
+
+### Manual Override
+Humans can terminate or redirect workflows.
+
+---
+
+# 18. Advanced Development Capabilities
+
+### Architecture Generation
+Produce system design documents.
+
+### Requirement Analysis
+Convert requirements into specifications.
+
+### Automated Documentation
+Generate developer documentation.
+
+### Codebase Refactoring
+Improve existing code structure.
+
+### Legacy Code Understanding
+Analyze unfamiliar codebases.
+
+### Project Bootstrapping
+Create new projects from scratch.
+
+---
+
+# 19. Developer Productivity Enhancements
+
+### Scaffolding Tools
+Generate project templates.
+
+### Automation Scripts
+Create build and deployment scripts.
+
+### Dependency Updates
+Upgrade libraries automatically.
+
+### Performance Optimization Suggestions
+Identify inefficient code patterns.
+
+---
+
+# 20. Research and Experimental Capabilities
+
+### Hierarchical Agent Systems
+Agents organized in multi-level structures.
+
+### Self-Reflective Agents
+Agents evaluate their own performance.
+
+### Strategy Adaptation
+Agents change strategies over time.
+
+### Collaborative Reasoning
+Multiple agents combine insights.
+
+### Emergent Problem Solving
+Agents develop novel approaches.
+
+---
+
+# Total Unique Features Identified
+
+Approximately **100+ distinct capabilities** relevant to building a fully autonomous AI engineering platform.
+
+---
+
+# Key Takeaway
+
+Modern open-source AI agent systems collectively provide nearly all components required to build an **AI-driven software engineering organization**, including:
+
+- repository reasoning
+- code editing
+- debugging
+- multi-agent collaboration
+- workflow orchestration
+- automated testing
+- quality gating
+- improvement loops
+
+Combining these capabilities enables the construction of a **fully automated AI development pipeline**.
